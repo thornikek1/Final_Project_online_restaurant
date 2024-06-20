@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'restaurant/styles.css' %}">
+    <style>
+        /* Custom styles specific to the cart page */
+        body {
+            background-color: #f8f9fa;
+        }
+        .cart-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .cart-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .cart-item {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .item-details {
+            flex: 1;
+        }
+        .item-actions {
+            display: flex;
+            align-items: center;
+        }
+        .quantity-input {
+            width: 70px;
+            text-align: center;
+        }
+        .total-price {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cart-container">
+            <h1 class="cart-header">Your Cart</h1>
+            <div class="cart-items">
+                {% for item in basket %}
+                <div class="cart-item" id="item-{{ item.product.id }}">
+                    <div class="row align-items-center">
+                        <div class="col-md-7 item-details">
+                            <h5>{{ item.product.name }}</h5>
+                            <p>Price: ${{ item.price }} each</p>
+                        </div>
+                        <div class="col-md-5 item-actions">
+                            <form method="put" class="update-form">
+                                {% csrf_token %}
+                                <div class="input-group">
+                                    <input type="number" name="quantity" value="{{ item.quantity }}" class="form-control quantity-input">
+                                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-primary update-btn">Update</button>
+                                    </div>
+                                </div>
+                            </form>
+                            <form method="post" class="ml-2 remove-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                                <button type="button" class="btn btn-danger remove-btn" data-product-id="{{ item.product.id }}">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="text-right mt-4">
+                <h3 class="total-price">Total: $<span id="total-price">{{ total_price }}</span></h3>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Function to handle quantity update
+            $('.update-btn').click(function(event) {
+                event.preventDefault();  // Prevent default button action
+
+                var form = $(this).closest('.update-form');
+                var productId = form.find('input[name="product_id"]').val();
+                var quantity = form.find('input[name="quantity"]').val();
+                var csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+
+                // AJAX request to update quantity
+                $.ajax({
+                    type: 'PUT',
+                    url: '{% url "update_cart" %}',
+                    data: JSON.stringify({
+                        'product_id': productId,
+                        'quantity': quantity
+                    }),
+                    contentType: 'application/json',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    success: function(response) {
+                        // Handle success response
+                        alert('Quantity updated successfully!');
+                        // Update the quantity displayed in the cart item
+                        var cartItem = $('#item-' + productId);
+                        cartItem.find('.quantity-input').val(quantity);
+                        // Update total price
+                        var total = 0;
+                        $('.cart-item').each(function() {
+                            var quantity = parseInt($(this).find('.quantity-input').val());
+                            var price = parseFloat($(this).find('p').text().split('$')[1]);
+                            total += quantity * price;
+                        });
+                        $('#total-price').text(total.toFixed(2));
+                    },
+                    error: function(xhr, status, error) {
+                        // Handle error response
+                        alert('Failed to update quantity: ' + error);
+                    }
+                });
+            });
+
+            // Function to handle product removal
+            $('.remove-btn').click(function(event) {
+                event.preventDefault();  // Prevent default button action
+
+                var productId = $(this).data('product-id');
+                var csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+
+                // AJAX request to remove product
+                $.ajax({
+                    type: 'POST',
+                    url: '{% url "remove_from_cart" %}',
+                    data: {
+                        'product_id': productId,
+                        'csrfmiddlewaretoken': csrfToken
+                    },
+                    success: function(response) {
+                        // Handle success response
+                        alert('Product removed from cart successfully!');
+                        // Remove the cart item from the DOM
+                        $('#item-' + productId).remove();
+                        // Update total price
+                        var total = 0;
+                        $('.cart-item').each(function() {
+                            var quantity = parseInt($(this).find('.quantity-input').val());
+                            var price = parseFloat($(this).find('p').text().split('$')[1]);
+                            total += quantity * price;
+                        });
+                        $('#total-price').text(total.toFixed(2));
+                    },
+                    error: function(xhr, status, error) {
+                        // Handle error response
+                        alert('Failed to remove product from cart: ' + error);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

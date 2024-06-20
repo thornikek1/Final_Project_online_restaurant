@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dish List</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'restaurant/styles.css' %}">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center my-4">
+            <h1 class="text-center">Menu</h1>
+            <a href="{% url 'cart' %}" class="btn btn-primary">
+                <i class="fas fa-shopping-cart"></i>
+                Cart (<span id="cart-count">{{ cart_count }}</span>)
+            </a>
+        </div>
+        <form method="get" class="form-inline justify-content-center mb-4">
+            <select name="category_id" class="form-control mx-2">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-check form-check-inline">
+                <input type="checkbox" name="vegeterian" value="true" class="form-check-input" id="vegetarianCheck">
+                <label class="form-check-label" for="vegetarianCheck">Vegetarian</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input type="checkbox" name="nuts" value="true" class="form-check-input" id="nutsCheck">
+                <label class="form-check-label" for="nutsCheck">Nutty</label>
+            </div>
+            <input type="number" name="spiciness" min="0" max="4" class="form-control mx-2" placeholder="Spiciness">
+            <button type="submit" class="btn btn-primary mx-2">Filter</button>
+        </form>
+        <div class="row">
+            {% for product in products %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center">
+                    <img src="{{ product.image }}" class="card-img-top" alt="{{ product.name }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text">Spiciness: {{ product.spiciness }}</p>
+                        <p class="card-text">Nutty: {{ product.nuts }}</p>
+                        <p class="card-text">Vegetarian: {{ product.vegeterian }}</p>
+                        <p class="card-text">Price: ${{ product.price }}</p>
+                        <form method="post" action="{% url 'add_to_cart' product.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">Add to Cart</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</body>
+</html>
